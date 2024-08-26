@@ -166,6 +166,7 @@ spec:
               orgName:
                 title: Azure Organization Name
                 type: string
+                default: glamperi
               repoName:
                 title: Azure Repository Name
                 description: Unique name for this app Azure repository

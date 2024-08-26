@@ -2,7 +2,7 @@ apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
   name: pepsico-dev-template
-  title: Pepsico Dev Flow template 3.2
+  title: Pepsico Dev Flow template 3.3
   description: The Pepsico Dev Flow
   tags:
     - service-now
@@ -279,6 +279,14 @@ spec:
         repoUrl: "${{ parameters.repo.host }}?owner=${{ parameters.repo.owner }}&repo=${{parameters.component_id}}"
         repoVisibility: public
 
+     - name: Publish Azure Debug
+      id: pub-verify-azure
+      if: ${{ parameters.pipeline === "AzureDevOps/AzureRepo"}} 
+      action: debug:log
+      input:
+        message:  URL to AZURE   dev.azure.com?repo=${{ parameters.repoName }}&organization=${{ parameters.orgName }}&owner=Developer%20Hub%20Demo
+
+
     - id: publishazure
       name: Publishing Code Repo (AzureDevOps/AzureRepo)
       if: ${{ parameters.pipeline === "AzureDevOps/AzureRepo"}}
@@ -290,13 +298,7 @@ spec:
         gitAuthorName: "Gary Lamperillo"
         gitAuthorEmail: "glamperi@redhat.com"
 
-    - name: Publish Azure Debug
-      id: pub-verify-azure
-      if: ${{ parameters.pipeline === "AzureDevOps/AzureRepo"}} 
-      action: debug:log
-      input:
-        message:  URL to AZURE   dev.azure.com?repo=${{ parameters.repoName }}&organization=${{ parameters.orgName }}&owner=Developer%20Hub%20Demo
-
+    
     - id: createPipelineazure
       name: Configuring Azure Pipeline (AzureDevOps/AzureRepo)
       if: ${{ parameters.pipeline === "AzureDevOps/AzureRepo"}}

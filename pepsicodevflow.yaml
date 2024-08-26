@@ -2,7 +2,7 @@ apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
   name: pepsico-dev-template
-  title: Pepsico Dev Flow template 3.1
+  title: Pepsico Dev Flow template 3.2
   description: The Pepsico Dev Flow
   tags:
     - service-now
@@ -180,7 +180,7 @@ spec:
       name: Verify ServiceNow Approval
       action: servicenow:now:table:retrieveRecord
       input:
-        tableName: x_1520818_pepsico_pepsionboarding
+        tableName: u_x_1520818_pepsico_pepsionboarding
         sysId: "${{ parameters.approvalcode }}"
 
 

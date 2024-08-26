@@ -22,6 +22,7 @@ spec:
       required:
         - approvalcode
         - component_id
+        - orgName
       properties:
         approvalcode:
           title: Service Now Approval Code

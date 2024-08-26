@@ -2,7 +2,7 @@ apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
   name: pepsico-dev-template
-  title: Pepsico Dev Flow template 3.1
+  title: Pepsico Dev Flow template 3.2
   description: The Pepsico Dev Flow
   tags:
     - service-now
@@ -287,8 +287,8 @@ spec:
         repoUrl: dev.azure.com?repo=${{ parameters.repoName }}&organization=${{ parameters.orgName }}&owner=Developer%20Hub%20Demo
         description: ${{ parameters.description }}
         defaultBranch: main
-        gitAuthorName: "PepsiCo Dev"
-        gitAuthorEmail: "dlinnema@redhat.com"
+        gitAuthorName: "Gary Lamperillo"
+        gitAuthorEmail: "glamperi@redhat.com"
 
     - id: createPipelineazure
       name: Configuring Azure Pipeline (AzureDevOps/AzureRepo)
@@ -412,8 +412,8 @@ spec:
         repoUrl: dev.azure.com?repo=${{ parameters.repoName }}-gitops&organization=${{ parameters.orgName }}&owner=Developer%20Hub%20Demo
         description: ${{ parameters.description }}
         defaultBranch: main
-        gitAuthorName: "Arun Hariharan"
-        gitAuthorEmail: "anattama@redhat.com"
+        gitAuthorName: "Gary Lamperillo"
+        gitAuthorEmail: "glamperi@redhat.com"
         sourcePath: ./tenant-gitops
        
 

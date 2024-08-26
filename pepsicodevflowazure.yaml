@@ -427,16 +427,7 @@ spec:
         repoUrl: https://${{ parameters.repo.host }}/${{ parameters.repo.owner }}/${{ parameters.component_id }}-gitops.git
         path: 'argocd/'
 
-    - id: create-argocd-resources-azure
-      name: Create ArgoCD Resources (AzureDevOps/AzureRepo)
-      if: ${{ parameters.pipeline === "AzureDevOps/AzureRepo"}}
-      action: argocd:create-resources
-      input:
-        appName: ${{ parameters.artifactId }}-bootstrap
-        argoInstance: main
-        namespace: janus-argocd
-        repoUrl:  https://${{ parameters.orgName }}@dev.azure.com/${{ parameters.orgName }}/Developer%20Hub%20Demo/_git/${{ parameters.repoName }}-gitops
-        path: "argocd/"
+
 
 
         

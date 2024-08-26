@@ -1,0 +1,465 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: pepsico-dev-template-azure
+  title: Pepsico Dev Flow template 3.41
+  description: The Pepsico Dev Flow
+  tags:
+    - service-now
+    - pepsico
+    - pepsico-dev-flow
+    - argocd
+    - azuredevops
+    - tekton
+    - sonarqube
+spec:
+  owner: rhdh
+  type: service
+  
+
+  parameters:
+    - title: Provide Dev Flow Variables 
+      required:
+        - approvalcode
+        - component_id
+      properties:
+        approvalcode:
+          title: Service Now Approval Code
+          type: string 
+        component_id:
+          title: Application Project Name
+          type: string 
+        artifact_id:
+          title: Artifact Id
+          type: string
+          default: pepsico-app
+          description: Maven Artifact Id
+        group_id:
+          title: Group Id
+          type: string
+          default: pepsico-mvn
+          description: Maven Group Id
+        java_package_name:
+          title: Package Name
+          default: com.pepsico
+          type: string
+          description: Name for the package. eg (com.pepsico.blah)
+        description:
+          title: Description
+          type: string
+          description: Help others understand what this website is for.
+          default: A pepsico app
+    - title: Provide Image Registry Information
+      required:
+        - image_registry
+      properties:
+        image_registry:
+          title: Image Registry
+          type: string
+          enum:
+            - Openshift
+            - Quay
+            - JFrog
+      dependencies:
+        image_registry:
+          oneOf:
+          - properties:
+              image_registry:
+                 enum:
+                   - Openshift
+              image_host:
+                title: Image Host
+                type: string
+                description: Host for storing image
+                default: image-registry.openshift-image-registry.svc:5000
+              image_tag:
+                title: Image Tag
+                default: latest             
+                type: string
+                description: Build Image tag
+          - properties:
+              image_registry:
+                  enum:
+                    - Quay
+              image_host:
+                 title: Image Host
+                 type: string
+                 description: Host for storing image
+                 default: quay-qmdjh.apps.cluster-qmdjh.qmdjh.sandbox1439.opentlc.com
+              image_organization:
+                 title: Organization
+                 type: string
+                 description: Name of the Quay Organization
+                 default: quayadmin
+              image_tag:
+                 title: Image Tag
+                 default: latest
+                 type: string
+                 description: Build Image tag
+          - properties:
+              image_registry:
+                 enum:
+                  - JFrog
+              image_host:
+                 title: Image Host
+                 type: string
+                 description: Host for storing image
+                 default: jfrog-qmdjh.apps.cluster-qmdjh.qmdjh.sandbox1439.opentlc.com  
+              image_organization:
+                 title: Organization
+                 type: string
+                 description: Name of the JFrog Organization
+                 default: jfrogadmin
+              image_tag:
+                 title: Image Tag
+                 default: latest
+                 type: string
+                 description: Build Image tag
+
+    - title: Selection for Pipeline/Repository
+      required:
+        - pipeline
+      properties:
+        pipeline:
+          title: Pipeline Repository
+          type: string
+          enum:
+            - AzureDevOps/AzureRepo
+            - Tekton/GitLab
+      dependencies:
+        pipeline:
+          oneOf:
+          - properties:
+              pipeline:
+                enum:
+                - Tekton/GitLab
+              repo:
+                title: Repository Location
+                type: object
+                properties:
+                  host:
+                    title: Repo Host
+                    type: string
+                    description: Your SCM host
+                    default: gitlab-gitlab.apps.cluster-qmdjh.qmdjh.sandbox1439.opentlc.com
+                    enum:
+                      - gitlab-gitlab.apps.cluster-qmdjh.qmdjh.sandbox1439.opentlc.com
+                  owner:
+                    title: Repo Owner
+                    type: string
+                    description: Your SCM host organization/group
+                    default: development
+                    enum:
+                    - development 
+                  verify_commits:
+                    title: Verify Commits
+                    type: string
+                    description: Verify Git repository commits using Red Hat’s Trusted Artifact Signer (TAS)
+                    default: disabled
+                    enum:
+                      - enabled
+                      - disabled
+          - properties:
+              pipeline:
+                enum:
+                  - AzureDevOps/AzureRepo
+              orgName:
+                title: Azure Organization Name
+                type: string
+              repoName:
+                title: Azure Repository Name
+                description: Unique name for this app Azure repository
+                default: my-pepsico-app
+                type: string
+          
+
+  steps:
+
+    # common step for Tekton and AzureDevOps
+    - id: snowretrieve
+      name: Verify ServiceNow Approval
+      action: servicenow:now:table:retrieveRecord
+      input:
+        tableName: u_x_1520818_pepsico_pepsionboarding
+        sysId: "${{ parameters.approvalcode }}"
+
+
+  # Fetch template
+
+    - name: Fetch Skeleton + Template (Tekton/GitLab)
+      id: template-tekton
+      if: ${{ parameters.pipeline === "Tekton/GitLab"}}    
+      action: fetch:template
+      input:
+        url: ./skeleton
+        copyWithoutTemplating:
+          - .github/workflows/*
+        values:
+          component_id: ${{ parameters.component_id }}
+          description: ${{ parameters.description }}
+          namespace: ${{ parameters.component_id }}-dev
+          group_id: ${{ parameters.group_id }}
+          artifact_id: ${{ parameters.artifact_id }}
+          java_package_name: ${{ parameters.java_package_name }}
+          owner: ${{ user.entity.metadata.name }}
+          cluster: .apps.cluster-qmdjh.qmdjh.sandbox1439.opentlc.com
+          host: ${{ parameters.repo.host }}
+          destination: ${{ parameters.repo.owner }}/${{ parameters.component_id }}
+          quay_destination: ${{ parameters.image_organization}}/${{ parameters.component_id }}
+          port: 8080
+          verify_commits: ${{ parameters.repo.verify_commits }}
+
+    - id: sourceCodeTemplate
+      name: Generating the Source Code Component (AzureDevOps/AzureRepo)
+      if: ${{ parameters.pipeline === "AzureDevOps/AzureRepo"}}
+      action: fetch:template
+      input:
+        url: ./skeleton
+        values:
+          orgName: ${{ parameters.orgName }}
+          repoName: ${{ parameters.repoName }}
+          description: ${{ parameters.description }}
+          port: ${{ parameters.port }}
+          group_id: ${{ parameters.group_id }}
+          artifact_Id: ${{ parameters.artifact_Id }}
+          java_package_name: ${{ parameters.java_package_name }}
+          sourceControl: dev.azure.com # If using a Hosted Enterprise GithHub replace with your internal domain
+          component_id: ${{ parameters.component_id }}
+          namespace: ${{ parameters.component_id }}-dev
+          owner: ${{ user.entity.metadata.name }}
+          cluster: .apps.cluster-qmdjh.qmdjh.sandbox1439.opentlc.com
+          host: ${{ parameters.repo.host }}
+          destination: ${{ parameters.repo.owner }}/${{ parameters.component_id }}
+          quay_destination: ${{ parameters.image_organization}}/${{ parameters.component_id }}
+          verify_commits: ${{ parameters.repo.verify_commits }}
+
+    - id: catalogTemplate
+      name: Generating the Catalog Info Component (AzureDevOps/AzureRepo)
+      if: ${{ parameters.pipeline === "AzureDevOps/AzureRepo"}}
+      action: fetch:template
+      input:
+        url: ./skeletons/catalog-info/
+        values:
+          name: ${{ parameters.component_id }}
+          orgName: ${{ parameters.orgName }}
+          repoName: ${{ parameters.repoName }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          applicationType: service
+          description: ${{ parameters.description }}
+          namespace: ${{ parameters.namespace }}-dev
+          ci: ${{ parameters.ci }}
+          artifact_id: ${{ parameters.artifact_id }}
+          sourceControl: dev.azure.com # If using a Hosted Enterprise GithHub replace with your internal domain
+          imageRegistry: ${{ parameters.image_registry }}
+          imageOrganization: ${{ parameters.image_organization }}
+          imageName: ${{ parameters.artifact_id }}
+          clusterDomainUrl: ${{ parameters.cluster_domain_url }}
+
+
+    # End Fetch Template
+
+    - name: Publish Verification (Tekton/Gitlab)
+      id: pub-verify-tekton
+      if: ${{ parameters.pipeline === "Tekton/GitLab"}} 
+      action: debug:log
+      input:
+        message:  ${{ parameters.repo.host }}?owner=${{ parameters.repo.owner }}&repo=${{parameters.component_id}}
+
+    # publish section - begin -  will have different outputs depending on the repo selected
+    
+   
+    - id: publishtekton
+      name: Publish (Tekton/Gitlab)
+      if: ${{ parameters.pipeline === "Tekton/GitLab"}}
+      action: publish:gitlab
+      input:
+        repoUrl: "${{ parameters.repo.host }}?owner=${{ parameters.repo.owner }}&repo=${{parameters.component_id}}"
+        repoVisibility: public
+
+    - id: publishazure
+      name: Publishing Code Repo (AzureDevOps/AzureRepo)
+      if: ${{ parameters.pipeline === "AzureDevOps/AzureRepo"}}
+      action: publish:azure
+      input:
+        repoUrl: dev.azure.com?repo=${{ parameters.repoName }}&organization=${{ parameters.orgName }}&owner=Developer%20Hub%20Demo
+        description: ${{ parameters.description }}
+        defaultBranch: main
+        gitAuthorName: "PepsiCo Dev"
+        gitAuthorEmail: "dlinnema@redhat.com"
+
+    - id: createPipelineazure
+      name: Configuring Azure Pipeline (AzureDevOps/AzureRepo)
+      if: ${{ parameters.pipeline === "AzureDevOps/AzureRepo"}}
+      action: azure:pipeline:create
+      input:
+        organization: ${{ parameters.orgName }}
+        project: "Developer Hub Demo"
+        folder: "/"
+        name: "azure-${{ parameters.repoName }}-pipeline"
+        repositoryId: ${{ steps.publishazure.output.repositoryId }}
+        repositoryName: ${{ parameters.repoName }}
+
+
+
+
+    # publish section - end - will have different outputs depending on the repo selected
+
+    # register section - begin -  will have different outputs depending on the repo selected
+
+    - name: Register Verification (Tekton/Gitlab)
+      id: pub-verify-tekton
+      if: ${{ parameters.pipeline === "Tekton/GitLab"}} 
+      action: debug:log
+      input:
+        message: repo content url ${{ steps.publishtekton.output.repoContentsUrl }}
+        
+    - name: Register (Tekton/Gitlab)
+      id: registertekton
+      if: ${{ parameters.pipeline === "Tekton/GitLab"}} 
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publishtekton.output.repoContentsUrl }}
+        catalogInfoPath: "/catalog-info.yaml"
+
+    - id: registerazure
+      name: Register (AzureDevOps/AzureRepo)
+      if: ${{ parameters.pipeline === "AzureDevOps/AzureRepo"}}
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publishazure.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+
+
+    # register section - end - will have different outputs depending on the repo selected
+
+
+    # Generating Deployment Resources - Start
+    - name: Generating Deployment Resources (Tekton/Gitlab)
+      id: template-gitops-deployment
+      if: ${{ parameters.pipeline === "Tekton/GitLab"}} 
+      action: fetch:template
+      input:
+        url: ./manifests
+        copyWithoutTemplating: []
+        values:
+          component_id: ${{ parameters.component_id }}
+          description: ${{ parameters.description }}
+          destination: https://${{ parameters.repo.host }}/${{ parameters.repo.owner }}/${{parameters.component_id}}-gitops.git
+          source_repository: https://${{ parameters.repo.host }}/${{ parameters.repo.owner }}/${{parameters.component_id}}.git
+          repository_name: ${{parameters.component_id}}
+          git_owner: ${{ parameters.repo.owner }}
+          cluster: .apps.cluster-qmdjh.qmdjh.sandbox1439.opentlc.com
+          namespace: ${{ parameters.component_id }}-dev
+          image_registry: ${{ parameters.image_registry }}
+          image_host: ${{ parameters.image_host }}
+          image_organization: ${{ parameters.image_organization }}
+          image_name: ${{ parameters.component_id }}
+          image_tag: ${{ parameters.image_tag }}
+          port: 8080
+          repository_host: ${{ parameters.repo.host }}
+          deployment_name: quarkus-template
+          user: ${{ user.entity.metadata.name }}
+          verify_commits: ${{ parameters.repo.verify_commits }}
+        targetPath: ./tenant-gitops
+
+    - id: template-gitops-deployment
+      name: Generating Deployment Resources (AzureDevOps/AzureRepo)
+      if: ${{ parameters.pipeline === "AzureDevOps/AzureRepo"}}
+      action: fetch:template
+      input:
+        url: ./manifests
+        copyWithoutTemplating: []
+        values:
+          component_id: ${{ parameters.component_id }}
+          destination: https://${{ parameters.orgName }}@dev.azure.com/${{ parameters.orgName }}/Developer%20Hub%20Demo/_git/${{ parameters.repoName }}-gitops
+          repository_name: https://${{ parameters.orgName }}@dev.azure.com/${{ parameters.orgName }}/Developer%20Hub%20Demo/_git/${{ parameters.repoName }}
+          git_owner: ${{ parameters.orgName }}
+          cluster: ${{ parameters.cluster_domain_url }}
+          namespace: ${{ parameters.namespace }}-dev
+          image_registry: ${{ parameters.image_registry }}
+          image_host: ${{ parameters.image_host }}
+          image_organization: ${{ parameters.image_organization }}
+          image_name: ${{ parameters.artifact_id }}
+          image_tag: ${{ parameters.image_tag }}
+          port: ${{ parameters.port }}
+          token: ${{ parameters.token }}
+          user: ${{ user.entity.metadata.name }}
+          verify_commits: ${{ parameters.repo.verify_commits }}
+        targetPath: ./tenant-gitops
+
+    # Generating Deployment Resources - End
+
+    - name: Publishing to Resource Repository (Tekton/Gitlab)
+      id: publishgitops
+      if: ${{ parameters.pipeline === "Tekton/GitLab"}} 
+      action: publish:gitlab
+      input:
+        repoUrl: "${{ parameters.repo.host }}?owner=${{ parameters.repo.owner }}&repo=${{parameters.component_id}}-gitops"
+        title: gitops resources for ${{ parameters.component_id }}
+        description: gitops resources for ${{ parameters.component_id }}
+        sourcePath: ./tenant-gitops
+        repoVisibility: public
+
+    - id: publishazure
+      name: Publishing to Resource Repository (AzureDevOps/AzureRepo)
+      if: ${{ parameters.pipeline === "AzureDevOps/AzureRepo"}}
+      action: publish:azure
+      input:
+        repoUrl: dev.azure.com?repo=${{ parameters.repoName }}-gitops&organization=${{ parameters.orgName }}&owner=Developer%20Hub%20Demo
+        description: ${{ parameters.description }}
+        defaultBranch: main
+        gitAuthorName: "Dale L"
+        gitAuthorEmail: "dlinnema@redhat.com"
+        sourcePath: ./tenant-gitops
+       
+
+    - name: Create ArgoCD Resources (Tekton/Gitlab)
+      id: create-argocd-resources-tekton
+      if: ${{ parameters.pipeline === "Tekton/GitLab"}} 
+      action: argocd:create-resources
+      input:
+        appName: ${{ parameters.component_id }}-bootstrap
+        argoInstance: main
+        namespace: janus-argocd
+        repoUrl: https://${{ parameters.repo.host }}/${{ parameters.repo.owner }}/${{ parameters.component_id }}-gitops.git
+        path: 'argocd/'
+    
+    - id: create-argocd-resources-azure
+      name: Create ArgoCD Resources (AzureDevOps/AzureRepo)
+      if: ${{ parameters.pipeline === "AzureDevOps/AzureRepo"}}
+      action: argocd:create-resources
+      input:
+        appName: ${{ parameters.artifactId }}-bootstrap
+        argoInstance: main
+        namespace: janus-argocd
+        repoUrl:  https://${{ parameters.orgName }}@dev.azure.com/${{ parameters.orgName }}/Developer%20Hub%20Demo/_git/${{ parameters.repoName }}-gitops
+        path: "argocd/"
+  
+
+    
+
+    
+        
+        
+  output:
+    text:
+    - title: Service Now Approval Code
+      content: Flow Approved with this code ID $${{ steps.snowretrieve.output.result.sys_id }}
+    links:
+      - title: Tekton/ArgoCD Source Code Repository
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Azure Source Code Repository
+        url: ${{ steps.publish.output.repoUrl }}
+      - title: Open Component in catalog
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}
+
+
+
+       
+      
+        
+       
+

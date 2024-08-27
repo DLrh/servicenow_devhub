@@ -2,7 +2,7 @@ apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
   name: pepsico-dev-template-azure
-  title: Pepsico Dev Flow template 3.3
+  title: Pepsico Dev Flow template 3.41
   description: The Pepsico Dev Flow
   tags:
     - service-now
@@ -22,6 +22,7 @@ spec:
       required:
         - approvalcode
         - component_id
+        - orgName
       properties:
         approvalcode:
           title: Service Now Approval Code
@@ -462,4 +463,3 @@ spec:
       
         
        
-

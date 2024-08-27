@@ -279,7 +279,7 @@ spec:
         repoUrl: "${{ parameters.repo.host }}?owner=${{ parameters.repo.owner }}&repo=${{parameters.component_id}}"
         repoVisibility: public
 
-     - name: Publish Azure Debug
+    - name: Publish Azure Debug
       id: pub-verify-azure
       if: ${{ parameters.pipeline === "AzureDevOps/AzureRepo"}} 
       action: debug:log

@@ -2,7 +2,7 @@ apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
   name: pepsico-dev-template
-  title: Pepsico Dev Flow template 3.5
+  title: Pepsico Dev Flow template 3.6
   description: The Pepsico Dev Flow
   tags:
     - service-now
@@ -442,7 +442,7 @@ spec:
       if: ${{ parameters.pipeline === "AzureDevOps/AzureRepo"}}
       action: argocd:create-resources
       input:
-        appName: ${{ parameters.artifactId }}-bootstrap
+        appName: ${{ parameters.component_id }}-bootstrap
         argoInstance: main
         namespace: janus-argocd
         repoUrl:  https://${{ parameters.orgName }}@dev.azure.com/${{ parameters.orgName }}/Developer%20Hub%20Demo/_git/${{ parameters.component_id }}-gitops

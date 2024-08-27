@@ -2,7 +2,7 @@ apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
   name: pepsico-dev-template
-  title: Pepsico Dev Flow template 3.4
+  title: Pepsico Dev Flow template 3.5
   description: The Pepsico Dev Flow
   tags:
     - service-now
@@ -167,11 +167,11 @@ spec:
                 title: Azure Organization Name
                 type: string
                 default: glamperi
-              repoName:
-                title: Azure Repository Name
-                description: Unique name for this app Azure repository
-                default: my-pepsico-app
-                type: string
+            #  repoName:
+            #    title: Azure Repository Name
+            #    description: Unique name for this app Azure repository
+            #    default: my-pepsico-app
+            #    type: string
           
 
   steps:
@@ -218,7 +218,7 @@ spec:
         url: ./skeleton
         values:
           orgName: ${{ parameters.orgName }}
-          repoName: ${{ parameters.repoName }}
+          repoName: ${{ parameters.component_id }}
           description: ${{ parameters.description }}
           port: ${{ parameters.port }}
           groupId: ${{ parameters.groupId }}
@@ -244,7 +244,7 @@ spec:
         values:
           name: ${{ parameters.componentId }}
           orgName: ${{ parameters.orgName }}
-          repoName: ${{ parameters.repoName }}
+          repoName: ${{ parameters.component_id }}
           owner: ${{ parameters.owner }}
           system: ${{ parameters.system }}
           applicationType: service
@@ -284,7 +284,7 @@ spec:
       if: ${{ parameters.pipeline === "AzureDevOps/AzureRepo"}} 
       action: debug:log
       input:
-        message:  URL to AZURE   dev.azure.com?repo=${{ parameters.repoName }}&organization=${{ parameters.orgName }}&owner=Developer%20Hub%20Demo
+        message:  URL to AZURE   dev.azure.com?repo=${{ parameters.component_id }}&organization=${{ parameters.orgName }}&owner=Developer%20Hub%20Demo
 
 
     - id: publishazure
@@ -292,7 +292,7 @@ spec:
       if: ${{ parameters.pipeline === "AzureDevOps/AzureRepo"}}
       action: publish:azure
       input:
-        repoUrl: dev.azure.com?repo=${{ parameters.repoName }}&organization=${{ parameters.orgName }}&owner=Developer%20Hub%20Demo
+        repoUrl: dev.azure.com?repo=${{ parameters.component_id }}&organization=${{ parameters.orgName }}&owner=Developer%20Hub%20Demo
         description: ${{ parameters.description }}
         defaultBranch: main
         gitAuthorName: "Gary Lamperillo"
@@ -307,9 +307,9 @@ spec:
         organization: ${{ parameters.orgName }}
         project: "Developer Hub Demo"
         folder: "/"
-        name: "azure-${{ parameters.repoName }}-pipeline"
+        name: "azure-${{ parameters.component_id }}-pipeline"
         repositoryId: ${{ steps.publishazure.output.repositoryId }}
-        repositoryName: ${{ parameters.repoName }}
+        repositoryName: ${{ parameters.component_id }}
 
 
 
@@ -384,8 +384,8 @@ spec:
         copyWithoutTemplating: []
         values:
           component_id: ${{ parameters.componentId }}
-          destination: https://${{ parameters.orgName }}@dev.azure.com/${{ parameters.orgName }}/Developer%20Hub%20Demo/_git/${{ parameters.repoName }}-gitops
-          repository_name: https://${{ parameters.orgName }}@dev.azure.com/${{ parameters.orgName }}/Developer%20Hub%20Demo/_git/${{ parameters.repoName }}
+          destination: https://${{ parameters.orgName }}@dev.azure.com/${{ parameters.orgName }}/Developer%20Hub%20Demo/_git/${{ parameters.component_id }}-gitops
+          repository_name: https://${{ parameters.orgName }}@dev.azure.com/${{ parameters.orgName }}/Developer%20Hub%20Demo/_git/${{ parameters.component_id }}
           git_owner: ${{ parameters.orgName }}
           cluster: ${{ parameters.cluster_domain_url }}
           namespace: ${{ parameters.namespace }}-dev
@@ -418,7 +418,7 @@ spec:
       if: ${{ parameters.pipeline === "AzureDevOps/AzureRepo"}}
       action: publish:azure
       input:
-        repoUrl: dev.azure.com?repo=${{ parameters.repoName }}-gitops&organization=${{ parameters.orgName }}&owner=Developer%20Hub%20Demo
+        repoUrl: dev.azure.com?repo=${{ parameters.component_id }}-gitops&organization=${{ parameters.orgName }}&owner=Developer%20Hub%20Demo
         description: ${{ parameters.description }}
         defaultBranch: main
         gitAuthorName: "Gary Lamperillo"
@@ -445,7 +445,7 @@ spec:
         appName: ${{ parameters.artifactId }}-bootstrap
         argoInstance: main
         namespace: janus-argocd
-        repoUrl:  https://${{ parameters.orgName }}@dev.azure.com/${{ parameters.orgName }}/Developer%20Hub%20Demo/_git/${{ parameters.repoName }}-gitops
+        repoUrl:  https://${{ parameters.orgName }}@dev.azure.com/${{ parameters.orgName }}/Developer%20Hub%20Demo/_git/${{ parameters.component_id }}-gitops
         path: "argocd/"
 
 
